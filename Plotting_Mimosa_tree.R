@@ -3,7 +3,7 @@
 if (!require(c("ape", "phytools","tidyverse","tidytree","data.table"))) 
   install.packages(c("ape", "phytools","tidyverse","tidytree","data.table"))
 
-if (!requireNamespace("BiocManager", quietly = TRUE))
+if (!requireNamespace("BiocManager", quietly = TRUE))+
   install.packages("BiocManager"); BiocManager::install("ggtree")
 
 library(ape);library(phytools); library(tidyverse); library(tidytree) 
@@ -11,12 +11,18 @@ library(ape);library(phytools); library(tidyverse); library(tidytree)
 
 #====================================================================================================#
 
+#For RStudio only
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+#====================================================================================================#
+
+
 #=================#
 # READING DATASET #
 #=================#
 
 mimosa_tree_all<- read.tree("mimosa_clean-VASCONCELOS2020.txt")
-mimosa_tree_selected <- read.table("mimosa_spp_phd.txt", header=T)
+mimosa_tree_selected <- read.table("mimosa_spp_phd.txt", stringsAsFactors = FALSE, header=T)
 
 #---Pruning outgroups
 
@@ -165,23 +171,28 @@ p<- ggtree(tree_data, layout = "circular", branch.length = "none") +
 
 #--- Coloring selected tips (from my PhD project)
 
-taxa_to_color<-c(mimosa_tree_selected$cleaned_name)
+mimosa_tree_selected <- mimosa_tree_selected[ , 1]
+mimosa_df <- as.data.frame(matrix(ncol = 1, nrow = length(mimosa_tree_all$tip.label)))
+rownames(mimosa_df) <- mimosa_tree_all$tip.label
+colnames(mimosa_df) <- "type"
+for(i in 1:nrow(mimosa_df)){
+  if(rownames(mimosa_df)[i] %in% mimosa_tree_selected){
+    mimosa_df$type[i] <- "Selected"
+  } else{
+    mimosa_df$type[i] <- "Not selected"
+  }
+}
 
-tree<-groupOTU(tree_data, taxa_to_color)
-
-p2<-ggtree(tree, layout = "circular", branch.length = "none") +
-  geom_tiplab(size= 2, align = TRUE, aes( subset=isTip, color=group, colnames = FALSE), show.legend=FALSE) +
-  scale_color_manual(values = c("black", "purple"), name = NULL) +
+p <- ggtree(tree_data, layout = "circular", branch.length = "none") 
+cols <- c("Selected" = "#2E8B57", "Not selected" = "#D3D3D399") 
+gheatmap(p, mimosa_df, offset = -0.7, width = 0.2, 
+         colnames = FALSE) +
+  scale_fill_manual(values = cols, breaks = c("selected",
+                                              "not.selected"), 
+                    name = NULL)+
   geom_nodepoint(aes(subset = node %in% c(748, 696, 739, 665, 666,  662, 657, 
                                           646, 636, 471,458, 501, 503, 481, 390,  610,
-                                          634, 617, 604, 597, 535, 526, 537, 521)), 
-                 color="black", size=5) +
+                                          634, 617, 604, 597, 535, 526, 537, 521)),  
+                 color="black", size=5)+
   geom_text(aes(label = node.labels), hjust = 0.5, vjust = 0.5, color = "white",
             size = 3) 
-
-print(p2)
-
-
-
-
-
